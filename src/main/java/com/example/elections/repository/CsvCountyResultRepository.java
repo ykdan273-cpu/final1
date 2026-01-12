@@ -15,8 +15,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Repository;
 
-@Repository
-@Profile("CsvEngine")
+@Repository("CsvRepository")
+@Profile({"CsvEngine", "JdbcEngine"})
 public class CsvCountyResultRepository implements CountyResultRepository {
 
     private static final String CSV_RESOURCE =
