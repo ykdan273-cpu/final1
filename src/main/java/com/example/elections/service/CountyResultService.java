@@ -2,12 +2,14 @@ package com.example.elections.service;
 
 import com.example.elections.model.CountyResult;
 import com.example.elections.repository.CountyResultRepository;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
-public class CountyResultService {
+@Profile("CsvEngine")
+public class CountyResultService implements CountyResultUseCases {
 
     private final CountyResultRepository repository;
 
@@ -15,31 +17,41 @@ public class CountyResultService {
         this.repository = repository;
     }
 
-    public List<CountyResult> findAll() {
+    @Override
+    public Iterable<CountyResult> listAll() {
         return repository.findAll();
     }
 
-    public Optional<CountyResult> findByFips(String countyFips) {
-        return repository.findByFips(countyFips);
+    @Override
+    public CountyResult getByFips(String countyFips) {
+        return repository.findByFips(countyFips)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Result not found"
+                ));
     }
 
+    @Override
     public CountyResult create(CountyResult result) {
+        if (repository.existsByFips(result.getCountyFips())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Result already exists");
+        }
         return repository.save(result);
     }
 
-    public Optional<CountyResult> update(String countyFips, CountyResult result) {
-        if (!repository.existsByFips(countyFips)) {
-            return Optional.empty();
+    @Override
+    public void replace(CountyResult result) {
+        if (!repository.existsByFips(result.getCountyFips())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Result not found");
         }
-        result.setCountyFips(countyFips);
-        return Optional.of(repository.save(result));
+        repository.save(result);
     }
 
-    public boolean delete(String countyFips) {
+    @Override
+    public void remove(String countyFips) {
         if (!repository.existsByFips(countyFips)) {
-            return false;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Result not found");
         }
         repository.deleteByFips(countyFips);
-        return true;
     }
 }

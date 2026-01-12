@@ -1,9 +1,8 @@
 package com.example.elections.controller;
 
 import com.example.elections.model.CountyResult;
-import com.example.elections.service.CountyResultService;
-import java.util.List;
-import java.util.Optional;
+import com.example.elections.service.CountyResultUseCases;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,48 +11,44 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/counties")
+@RequestMapping("/api/counties")
 public class CountyResultController {
 
-    private final CountyResultService service;
+    private final CountyResultUseCases service;
 
-    public CountyResultController(CountyResultService service) {
+    public CountyResultController(CountyResultUseCases service) {
         this.service = service;
     }
 
     @GetMapping
-    public List<CountyResult> findAll() {
-        return service.findAll();
+    public Iterable<CountyResult> list() {
+        return service.listAll();
     }
 
     @GetMapping("/{fips}")
-    public ResponseEntity<CountyResult> findByFips(@PathVariable String fips) {
-        Optional<CountyResult> result = service.findByFips(fips);
-        return result.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public CountyResult get(@PathVariable String fips) {
+        return service.getByFips(fips);
     }
 
     @PostMapping
     public ResponseEntity<CountyResult> create(@RequestBody CountyResult result) {
-        return ResponseEntity.ok(service.create(result));
+        CountyResult created = service.create(result);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{fips}")
-    public ResponseEntity<CountyResult> update(@PathVariable String fips,
-                                               @RequestBody CountyResult result) {
-        Optional<CountyResult> updated = service.update(fips, result);
-        return updated.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PutMapping
+    public void replace(@RequestBody CountyResult result) {
+        service.replace(result);
     }
 
     @DeleteMapping("/{fips}")
-    public ResponseEntity<Void> delete(@PathVariable String fips) {
-        if (!service.delete(fips)) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.noContent().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable String fips) {
+        service.remove(fips);
     }
 }
